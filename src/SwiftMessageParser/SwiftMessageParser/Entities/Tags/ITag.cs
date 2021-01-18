@@ -1,4 +1,4 @@
-﻿namespace SwiftMessageParser.Entities.MT.Tags
+﻿namespace SwiftMessageParser.Entities.Tags
 {
   public interface ITag
   {

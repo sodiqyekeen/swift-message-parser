@@ -1,9 +1,10 @@
-﻿using SwiftMessageParser.Extensions;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
+using SwiftMessageParser.Extensions;
 
 namespace SwiftMessageParser
 {
-    public class MTParser
+    internal class MTParser
     {
         /// <summary>
         /// The swift tags
@@ -16,6 +17,11 @@ namespace SwiftMessageParser
         private bool _isTag;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="MTParser"/> class.
+        /// </summary>
+        public MTParser() => LoadSwiftTags();
+
+        /// <summary>
         /// Block4s to list.
         /// </summary>
         /// <param name="message">The message.</param>
@@ -24,21 +30,21 @@ namespace SwiftMessageParser
         {
             List<string> stringList = new List<string>();
 
-            this._isTag = false;
+            _isTag = false;
             int num = 0;
             int length1 = message.Length;
             while (num < length1)
             {
-                int swiftTag = message.GetSwiftTag(num);
+                int swiftTag = message.GetNextSwiftTagIndex(num, _swiftTags);
                 if (swiftTag > 0)
                 {
-                    int length2 = this.CheckTag(num + swiftTag, length1, message);
-                    if (this._isTag)
+                    int length2 = CheckTag(num + swiftTag, length1, message);
+                    if (_isTag)
                     {
                         string str = message.Substring(num, swiftTag);
                         stringList.Add(str.Trim());
                         num += swiftTag;
-                        this._isTag = false;
+                        _isTag = false;
                     }
                     else
                     {
@@ -54,7 +60,7 @@ namespace SwiftMessageParser
                             string str = message.Substring(num, length2);
                             stringList.Add(str.TrimAllNewLines());
                             num = length2;
-                            this._isTag = false;
+                            _isTag = false;
                         }
                     }
                 }
@@ -79,24 +85,26 @@ namespace SwiftMessageParser
         {
             int num1;
             if (index + 3 >= size || index + 4 >= size)
+            {
                 num1 = 0;
+            }
             else if (message.Substring(index + 3, 1) == ":" || message.Substring(index + 4, 1) == ":")
             {
-                if (this.CheckValidTag(index, message))
+                if (CheckValidTag(index, message))
                 {
                     int num2 = index;
-                    this._isTag = true;
+                    _isTag = true;
                     return num2;
                 }
-                int swiftTag = message.GetSwiftTag(index);
-                num1 = this.CheckTag(index + swiftTag, size, message);
-                this._isTag = false;
+                int swiftTag = message.GetNextSwiftTagIndex(index, _swiftTags);
+                num1 = CheckTag(index + swiftTag, size, message);
+                _isTag = false;
             }
             else
             {
-                int swiftTag = message.GetSwiftTag(index);
-                num1 = this.CheckTag(index + swiftTag, size, message);
-                this._isTag = false;
+                int swiftTag = message.GetNextSwiftTagIndex(index, _swiftTags);
+                num1 = CheckTag(index + swiftTag, size, message);
+                _isTag = false;
             }
             return num1;
         }
@@ -107,495 +115,445 @@ namespace SwiftMessageParser
         /// <param name="index">The index.</param>
         /// <param name="message">The message.</param>
         /// <returns></returns>
-        private bool CheckValidTag(int index, string message)
-        {
-            bool flag = false;
-            foreach (string swiftTag in this._swiftTags)
-            {
-                if (swiftTag == message.Substring(index + 1, 2) || swiftTag == message.Substring(index + 1, 3))
-                {
-                    flag = true;
-                    return flag;
-                }
-            }
-            return flag;
-        }
+        private bool CheckValidTag(int index, string message) =>
+            _swiftTags.Any(tag => message.Substring(index + 1, 2).Equals(tag) || message.Substring(index + 1, 3).Equals(tag));
 
-        /// <summary>
-        /// Seperates the swift file.
-        /// </summary>
-        /// <param name="message">The message.</param>
-        /// <returns></returns>
-        public Dictionary<string, string> SeperateSWIFTFile(string message)
-        {
-            Dictionary<string, string> dictionary = new Dictionary<string, string>();
-            if (message.Contains("{1:"))
-            {
-                string str = message.Between("{1:", "}");
-                dictionary.Add("BasicHeader", str);
-            }
-            if (message.Contains("{2:"))
-            {
-                string str = message.Between("{2:", "}");
-                dictionary.Add("ApplicationHeader", str);
-            }
-            if (message.Contains("{3:"))
-            {
-                string str = message.Between("{3:", "{4:");
-                dictionary.Add("UserHeader", str);
-            }
-            if (message.Contains("{4:"))
-            {
-                string str = message.Between("{4:", "}");
-                dictionary.Add("TextBlock", str);
-            }
-            if (message.Contains("{5:"))
-            {
-                string str = message.Between("{5:", "}");
-                dictionary.Add("Trailer", str);
-            }
-            return dictionary;
-        }
+
 
         /// <summary>
         /// Loads the swift tags.
         /// </summary>
-        private void LoadSwiftTags()
-        {
-            this._swiftTags.Add("11A");
-            this._swiftTags.Add("11R");
-            this._swiftTags.Add("11S");
-            this._swiftTags.Add("12");
-            this._swiftTags.Add("12A");
-            this._swiftTags.Add("12B");
-            this._swiftTags.Add("12C");
-            this._swiftTags.Add("12E");
-            this._swiftTags.Add("12F");
-            this._swiftTags.Add("13A");
-            this._swiftTags.Add("13B");
-            this._swiftTags.Add("13C");
-            this._swiftTags.Add("13D");
-            this._swiftTags.Add("13E");
-            this._swiftTags.Add("13J");
-            this._swiftTags.Add("13K");
-            this._swiftTags.Add("14A");
-            this._swiftTags.Add("14C");
-            this._swiftTags.Add("14D");
-            this._swiftTags.Add("14F");
-            this._swiftTags.Add("14G");
-            this._swiftTags.Add("14J");
-            this._swiftTags.Add("14S");
-            this._swiftTags.Add("15A");
-            this._swiftTags.Add("15B");
-            this._swiftTags.Add("15C");
-            this._swiftTags.Add("15D");
-            this._swiftTags.Add("15E");
-            this._swiftTags.Add("15F");
-            this._swiftTags.Add("15G");
-            this._swiftTags.Add("15H");
-            this._swiftTags.Add("15I");
-            this._swiftTags.Add("15J");
-            this._swiftTags.Add("15K");
-            this._swiftTags.Add("15L");
-            this._swiftTags.Add("15M");
-            this._swiftTags.Add("15N");
-            this._swiftTags.Add("16A");
-            this._swiftTags.Add("16R");
-            this._swiftTags.Add("16S");
-            this._swiftTags.Add("17A");
-            this._swiftTags.Add("17B");
-            this._swiftTags.Add("17F");
-            this._swiftTags.Add("17G");
-            this._swiftTags.Add("17N");
-            this._swiftTags.Add("17O");
-            this._swiftTags.Add("17R");
-            this._swiftTags.Add("17T");
-            this._swiftTags.Add("17U");
-            this._swiftTags.Add("17V");
-            this._swiftTags.Add("18A");
-            this._swiftTags.Add("19");
-            this._swiftTags.Add("19A");
-            this._swiftTags.Add("19B");
-            this._swiftTags.Add("20");
-            this._swiftTags.Add("20C");
-            this._swiftTags.Add("20D");
-            this._swiftTags.Add("21");
-            this._swiftTags.Add("21A");
-            this._swiftTags.Add("21B");
-            this._swiftTags.Add("21C");
-            this._swiftTags.Add("21D");
-            this._swiftTags.Add("21E");
-            this._swiftTags.Add("21F");
-            this._swiftTags.Add("21G");
-            this._swiftTags.Add("21N");
-            this._swiftTags.Add("21P");
-            this._swiftTags.Add("21R");
-            this._swiftTags.Add("22");
-            this._swiftTags.Add("22A");
-            this._swiftTags.Add("22B");
-            this._swiftTags.Add("22C");
-            this._swiftTags.Add("22D");
-            this._swiftTags.Add("22E");
-            this._swiftTags.Add("22F");
-            this._swiftTags.Add("22G");
-            this._swiftTags.Add("22H");
-            this._swiftTags.Add("22J");
-            this._swiftTags.Add("22K");
-            this._swiftTags.Add("22X");
-            this._swiftTags.Add("23");
-            this._swiftTags.Add("23A");
-            this._swiftTags.Add("23B");
-            this._swiftTags.Add("23C");
-            this._swiftTags.Add("23D");
-            this._swiftTags.Add("23E");
-            this._swiftTags.Add("23F");
-            this._swiftTags.Add("23G");
-            this._swiftTags.Add("24B");
-            this._swiftTags.Add("24D");
-            this._swiftTags.Add("25");
-            this._swiftTags.Add("25A");
-            this._swiftTags.Add("25D");
-            this._swiftTags.Add("26A");
-            this._swiftTags.Add("26B");
-            this._swiftTags.Add("26C");
-            this._swiftTags.Add("26D");
-            this._swiftTags.Add("26E");
-            this._swiftTags.Add("26F");
-            this._swiftTags.Add("26H");
-            this._swiftTags.Add("26N");
-            this._swiftTags.Add("26P");
-            this._swiftTags.Add("26T");
-            this._swiftTags.Add("27");
-            this._swiftTags.Add("28");
-            this._swiftTags.Add("28C");
-            this._swiftTags.Add("28D");
-            this._swiftTags.Add("28E");
-            this._swiftTags.Add("29A");
-            this._swiftTags.Add("29B");
-            this._swiftTags.Add("29C");
-            this._swiftTags.Add("29E");
-            this._swiftTags.Add("29F");
-            this._swiftTags.Add("29G");
-            this._swiftTags.Add("29H");
-            this._swiftTags.Add("29J");
-            this._swiftTags.Add("29K");
-            this._swiftTags.Add("30");
-            this._swiftTags.Add("30F");
-            this._swiftTags.Add("30G");
-            this._swiftTags.Add("30H");
-            this._swiftTags.Add("30P");
-            this._swiftTags.Add("30Q");
-            this._swiftTags.Add("30T");
-            this._swiftTags.Add("30U");
-            this._swiftTags.Add("30V");
-            this._swiftTags.Add("30X");
-            this._swiftTags.Add("31C");
-            this._swiftTags.Add("31D");
-            this._swiftTags.Add("31E");
-            this._swiftTags.Add("31F");
-            this._swiftTags.Add("31G");
-            this._swiftTags.Add("31L");
-            this._swiftTags.Add("31P");
-            this._swiftTags.Add("31R");
-            this._swiftTags.Add("31S");
-            this._swiftTags.Add("31X");
-            this._swiftTags.Add("32A");
-            this._swiftTags.Add("32B");
-            this._swiftTags.Add("32C");
-            this._swiftTags.Add("32D");
-            this._swiftTags.Add("32E");
-            this._swiftTags.Add("32F");
-            this._swiftTags.Add("32G");
-            this._swiftTags.Add("32H");
-            this._swiftTags.Add("32J");
-            this._swiftTags.Add("32K");
-            this._swiftTags.Add("32M");
-            this._swiftTags.Add("32N");
-            this._swiftTags.Add("32P");
-            this._swiftTags.Add("32Q");
-            this._swiftTags.Add("32U");
-            this._swiftTags.Add("33A");
-            this._swiftTags.Add("33B");
-            this._swiftTags.Add("33C");
-            this._swiftTags.Add("33D");
-            this._swiftTags.Add("33E");
-            this._swiftTags.Add("33F");
-            this._swiftTags.Add("33G");
-            this._swiftTags.Add("33K");
-            this._swiftTags.Add("33N");
-            this._swiftTags.Add("33P");
-            this._swiftTags.Add("33R");
-            this._swiftTags.Add("33S");
-            this._swiftTags.Add("33T");
-            this._swiftTags.Add("34A");
-            this._swiftTags.Add("34B");
-            this._swiftTags.Add("34E");
-            this._swiftTags.Add("34F");
-            this._swiftTags.Add("34N");
-            this._swiftTags.Add("34P");
-            this._swiftTags.Add("34R");
-            this._swiftTags.Add("35A");
-            this._swiftTags.Add("35B");
-            this._swiftTags.Add("35C");
-            this._swiftTags.Add("35D");
-            this._swiftTags.Add("35E");
-            this._swiftTags.Add("35F");
-            this._swiftTags.Add("35H");
-            this._swiftTags.Add("35L");
-            this._swiftTags.Add("35N");
-            this._swiftTags.Add("35S");
-            this._swiftTags.Add("35U");
-            this._swiftTags.Add("36");
-            this._swiftTags.Add("36A");
-            this._swiftTags.Add("36B");
-            this._swiftTags.Add("36C");
-            this._swiftTags.Add("36E");
-            this._swiftTags.Add("37A");
-            this._swiftTags.Add("37B");
-            this._swiftTags.Add("37C");
-            this._swiftTags.Add("37D");
-            this._swiftTags.Add("37E");
-            this._swiftTags.Add("37F");
-            this._swiftTags.Add("37G");
-            this._swiftTags.Add("37H");
-            this._swiftTags.Add("37J");
-            this._swiftTags.Add("37K");
-            this._swiftTags.Add("37L");
-            this._swiftTags.Add("37M");
-            this._swiftTags.Add("37N");
-            this._swiftTags.Add("37P");
-            this._swiftTags.Add("37R");
-            this._swiftTags.Add("37U");
-            this._swiftTags.Add("38A");
-            this._swiftTags.Add("38B");
-            this._swiftTags.Add("38D");
-            this._swiftTags.Add("38E");
-            this._swiftTags.Add("38G");
-            this._swiftTags.Add("38H");
-            this._swiftTags.Add("38J");
-            this._swiftTags.Add("39A");
-            this._swiftTags.Add("39B");
-            this._swiftTags.Add("39C");
-            this._swiftTags.Add("39P");
-            this._swiftTags.Add("40A");
-            this._swiftTags.Add("40B");
-            this._swiftTags.Add("40C");
-            this._swiftTags.Add("40E");
-            this._swiftTags.Add("40F");
-            this._swiftTags.Add("41A");
-            this._swiftTags.Add("41D");
-            this._swiftTags.Add("42A");
-            this._swiftTags.Add("42C");
-            this._swiftTags.Add("42D");
-            this._swiftTags.Add("42M");
-            this._swiftTags.Add("42P");
-            this._swiftTags.Add("43P");
-            this._swiftTags.Add("43T");
-            this._swiftTags.Add("44A");
-            this._swiftTags.Add("44B");
-            this._swiftTags.Add("44C");
-            this._swiftTags.Add("44D");
-            this._swiftTags.Add("44E");
-            this._swiftTags.Add("44F");
-            this._swiftTags.Add("45A");
-            this._swiftTags.Add("45B");
-            this._swiftTags.Add("46A");
-            this._swiftTags.Add("46B");
-            this._swiftTags.Add("47A");
-            this._swiftTags.Add("47B");
-            this._swiftTags.Add("48");
-            this._swiftTags.Add("49");
-            this._swiftTags.Add("50");
-            this._swiftTags.Add("50A");
-            this._swiftTags.Add("50B");
-            this._swiftTags.Add("50C");
-            this._swiftTags.Add("50D");
-            this._swiftTags.Add("50F");
-            this._swiftTags.Add("50G");
-            this._swiftTags.Add("50H");
-            this._swiftTags.Add("50K");
-            this._swiftTags.Add("50L");
-            this._swiftTags.Add("51A");
-            this._swiftTags.Add("51C");
-            this._swiftTags.Add("51D");
-            this._swiftTags.Add("52A");
-            this._swiftTags.Add("52B");
-            this._swiftTags.Add("52C");
-            this._swiftTags.Add("52D");
-            this._swiftTags.Add("52G");
-            this._swiftTags.Add("53");
-            this._swiftTags.Add("53A");
-            this._swiftTags.Add("53B");
-            this._swiftTags.Add("53C");
-            this._swiftTags.Add("53D");
-            this._swiftTags.Add("53J");
-            this._swiftTags.Add("54");
-            this._swiftTags.Add("54A");
-            this._swiftTags.Add("54B");
-            this._swiftTags.Add("54D");
-            this._swiftTags.Add("55");
-            this._swiftTags.Add("55A");
-            this._swiftTags.Add("55B");
-            this._swiftTags.Add("55D");
-            this._swiftTags.Add("56");
-            this._swiftTags.Add("56A");
-            this._swiftTags.Add("56B");
-            this._swiftTags.Add("56C");
-            this._swiftTags.Add("56D");
-            this._swiftTags.Add("56J");
-            this._swiftTags.Add("57");
-            this._swiftTags.Add("57A");
-            this._swiftTags.Add("57B");
-            this._swiftTags.Add("57C");
-            this._swiftTags.Add("57D");
-            this._swiftTags.Add("57J");
-            this._swiftTags.Add("58A");
-            this._swiftTags.Add("58B");
-            this._swiftTags.Add("58C");
-            this._swiftTags.Add("58D");
-            this._swiftTags.Add("58J");
-            this._swiftTags.Add("59");
-            this._swiftTags.Add("59A");
-            this._swiftTags.Add("59F");
-            this._swiftTags.Add("60F");
-            this._swiftTags.Add("60M");
-            this._swiftTags.Add("61");
-            this._swiftTags.Add("62F");
-            this._swiftTags.Add("62M");
-            this._swiftTags.Add("64");
-            this._swiftTags.Add("65");
-            this._swiftTags.Add("67A");
-            this._swiftTags.Add("68A");
-            this._swiftTags.Add("68B");
-            this._swiftTags.Add("68C");
-            this._swiftTags.Add("69A");
-            this._swiftTags.Add("69B");
-            this._swiftTags.Add("69C");
-            this._swiftTags.Add("69D");
-            this._swiftTags.Add("69E");
-            this._swiftTags.Add("69F");
-            this._swiftTags.Add("69J");
-            this._swiftTags.Add("70");
-            this._swiftTags.Add("70C");
-            this._swiftTags.Add("70D");
-            this._swiftTags.Add("70E");
-            this._swiftTags.Add("70F");
-            this._swiftTags.Add("70G");
-            this._swiftTags.Add("71A");
-            this._swiftTags.Add("71B");
-            this._swiftTags.Add("71C");
-            this._swiftTags.Add("71F");
-            this._swiftTags.Add("71G");
-            this._swiftTags.Add("71H");
-            this._swiftTags.Add("71J");
-            this._swiftTags.Add("71K");
-            this._swiftTags.Add("71L");
-            this._swiftTags.Add("72");
-            this._swiftTags.Add("73");
-            this._swiftTags.Add("74");
-            this._swiftTags.Add("75");
-            this._swiftTags.Add("76");
-            this._swiftTags.Add("77A");
-            this._swiftTags.Add("77B");
-            this._swiftTags.Add("77D");
-            this._swiftTags.Add("77E");
-            this._swiftTags.Add("77F");
-            this._swiftTags.Add("77G");
-            this._swiftTags.Add("77H");
-            this._swiftTags.Add("77J");
-            this._swiftTags.Add("77T");
-            this._swiftTags.Add("78");
-            this._swiftTags.Add("79");
-            this._swiftTags.Add("80C");
-            this._swiftTags.Add("82A");
-            this._swiftTags.Add("82B");
-            this._swiftTags.Add("82D");
-            this._swiftTags.Add("82J");
-            this._swiftTags.Add("82S");
-            this._swiftTags.Add("83A");
-            this._swiftTags.Add("83C");
-            this._swiftTags.Add("83D");
-            this._swiftTags.Add("83J");
-            this._swiftTags.Add("84A");
-            this._swiftTags.Add("84B");
-            this._swiftTags.Add("84D");
-            this._swiftTags.Add("84J");
-            this._swiftTags.Add("85A");
-            this._swiftTags.Add("85B");
-            this._swiftTags.Add("85D");
-            this._swiftTags.Add("85J");
-            this._swiftTags.Add("86");
-            this._swiftTags.Add("86A");
-            this._swiftTags.Add("86B");
-            this._swiftTags.Add("86D");
-            this._swiftTags.Add("86J");
-            this._swiftTags.Add("87A");
-            this._swiftTags.Add("87B");
-            this._swiftTags.Add("87D");
-            this._swiftTags.Add("87J");
-            this._swiftTags.Add("90A");
-            this._swiftTags.Add("90B");
-            this._swiftTags.Add("90C");
-            this._swiftTags.Add("90D");
-            this._swiftTags.Add("90E");
-            this._swiftTags.Add("90F");
-            this._swiftTags.Add("90J");
-            this._swiftTags.Add("91A");
-            this._swiftTags.Add("91B");
-            this._swiftTags.Add("91C");
-            this._swiftTags.Add("91D");
-            this._swiftTags.Add("91E");
-            this._swiftTags.Add("91F");
-            this._swiftTags.Add("91G");
-            this._swiftTags.Add("91H");
-            this._swiftTags.Add("92A");
-            this._swiftTags.Add("92B");
-            this._swiftTags.Add("92C");
-            this._swiftTags.Add("92D");
-            this._swiftTags.Add("92E");
-            this._swiftTags.Add("92F");
-            this._swiftTags.Add("92J");
-            this._swiftTags.Add("92K");
-            this._swiftTags.Add("92L");
-            this._swiftTags.Add("92M");
-            this._swiftTags.Add("92N");
-            this._swiftTags.Add("93A");
-            this._swiftTags.Add("93B");
-            this._swiftTags.Add("93C");
-            this._swiftTags.Add("93D");
-            this._swiftTags.Add("94A");
-            this._swiftTags.Add("94B");
-            this._swiftTags.Add("94C");
-            this._swiftTags.Add("94D");
-            this._swiftTags.Add("94F");
-            this._swiftTags.Add("94G");
-            this._swiftTags.Add("95C");
-            this._swiftTags.Add("95P");
-            this._swiftTags.Add("95Q");
-            this._swiftTags.Add("95R");
-            this._swiftTags.Add("95S");
-            this._swiftTags.Add("95T");
-            this._swiftTags.Add("95U");
-            this._swiftTags.Add("95V");
-            this._swiftTags.Add("97A");
-            this._swiftTags.Add("97B");
-            this._swiftTags.Add("97C");
-            this._swiftTags.Add("98A");
-            this._swiftTags.Add("98B");
-            this._swiftTags.Add("98C");
-            this._swiftTags.Add("98D");
-            this._swiftTags.Add("98E");
-            this._swiftTags.Add("99A");
-            this._swiftTags.Add("99B");
-        }
+        private void LoadSwiftTags() => 
+            _swiftTags = new List<string>
+            {
+                "11A",
+                "11R",
+                "11S",
+                "12",
+                "12A",
+                "12B",
+                "12C",
+                "12E",
+                "12F",
+                "13A",
+                "13B",
+                "13C",
+                "13D",
+                "13E",
+                "13J",
+                "13K",
+                "14A",
+                "14C",
+                "14D",
+                "14F",
+                "14G",
+                "14J",
+                "14S",
+                "15A",
+                "15B",
+                "15C",
+                "15D",
+                "15E",
+                "15F",
+                "15G",
+                "15H",
+                "15I",
+                "15J",
+                "15K",
+                "15L",
+                "15M",
+                "15N",
+                "16A",
+                "16R",
+                "16S",
+                "17A",
+                "17B",
+                "17F",
+                "17G",
+                "17N",
+                "17O",
+                "17R",
+                "17T",
+                "17U",
+                "17V",
+                "18A",
+                "19",
+                "19A",
+                "19B",
+                "20",
+                "20C",
+                "20D",
+                "21",
+                "21A",
+                "21B",
+                "21C",
+                "21D",
+                "21E",
+                "21F",
+                "21G",
+                "21N",
+                "21P",
+                "21R",
+                "22",
+                "22A",
+                "22B",
+                "22C",
+                "22D",
+                "22E",
+                "22F",
+                "22G",
+                "22H",
+                "22J",
+                "22K",
+                "22X",
+                "23",
+                "23A",
+                "23B",
+                "23C",
+                "23D",
+                "23E",
+                "23F",
+                "23G",
+                "24B",
+                "24D",
+                "25",
+                "25A",
+                "25D",
+                "26A",
+                "26B",
+                "26C",
+                "26D",
+                "26E",
+                "26F",
+                "26H",
+                "26N",
+                "26P",
+                "26T",
+                "27",
+                "28",
+                "28C",
+                "28D",
+                "28E",
+                "29A",
+                "29B",
+                "29C",
+                "29E",
+                "29F",
+                "29G",
+                "29H",
+                "29J",
+                "29K",
+                "30",
+                "30F",
+                "30G",
+                "30H",
+                "30P",
+                "30Q",
+                "30T",
+                "30U",
+                "30V",
+                "30X",
+                "31C",
+                "31D",
+                "31E",
+                "31F",
+                "31G",
+                "31L",
+                "31P",
+                "31R",
+                "31S",
+                "31X",
+                "32A",
+                "32B",
+                "32C",
+                "32D",
+                "32E",
+                "32F",
+                "32G",
+                "32H",
+                "32J",
+                "32K",
+                "32M",
+                "32N",
+                "32P",
+                "32Q",
+                "32U",
+                "33A",
+                "33B",
+                "33C",
+                "33D",
+                "33E",
+                "33F",
+                "33G",
+                "33K",
+                "33N",
+                "33P",
+                "33R",
+                "33S",
+                "33T",
+                "34A",
+                "34B",
+                "34E",
+                "34F",
+                "34N",
+                "34P",
+                "34R",
+                "35A",
+                "35B",
+                "35C",
+                "35D",
+                "35E",
+                "35F",
+                "35H",
+                "35L",
+                "35N",
+                "35S",
+                "35U",
+                "36",
+                "36A",
+                "36B",
+                "36C",
+                "36E",
+                "37A",
+                "37B",
+                "37C",
+                "37D",
+                "37E",
+                "37F",
+                "37G",
+                "37H",
+                "37J",
+                "37K",
+                "37L",
+                "37M",
+                "37N",
+                "37P",
+                "37R",
+                "37U",
+                "38A",
+                "38B",
+                "38D",
+                "38E",
+                "38G",
+                "38H",
+                "38J",
+                "39A",
+                "39B",
+                "39C",
+                "39P",
+                "40A",
+                "40B",
+                "40C",
+                "40E",
+                "40F",
+                "41A",
+                "41D",
+                "42A",
+                "42C",
+                "42D",
+                "42M",
+                "42P",
+                "43P",
+                "43T",
+                "44A",
+                "44B",
+                "44C",
+                "44D",
+                "44E",
+                "44F",
+                "45A",
+                "45B",
+                "46A",
+                "46B",
+                "47A",
+                "47B",
+                "48",
+                "49",
+                "50",
+                "50A",
+                "50B",
+                "50C",
+                "50D",
+                "50F",
+                "50G",
+                "50H",
+                "50K",
+                "50L",
+                "51A",
+                "51C",
+                "51D",
+                "52A",
+                "52B",
+                "52C",
+                "52D",
+                "52G",
+                "53",
+                "53A",
+                "53B",
+                "53C",
+                "53D",
+                "53J",
+                "54",
+                "54A",
+                "54B",
+                "54D",
+                "55",
+                "55A",
+                "55B",
+                "55D",
+                "56",
+                "56A",
+                "56B",
+                "56C",
+                "56D",
+                "56J",
+                "57",
+                "57A",
+                "57B",
+                "57C",
+                "57D",
+                "57J",
+                "58A",
+                "58B",
+                "58C",
+                "58D",
+                "58J",
+                "59",
+                "59A",
+                "59F",
+                "60F",
+                "60M",
+                "61",
+                "62F",
+                "62M",
+                "64",
+                "65",
+                "67A",
+                "68A",
+                "68B",
+                "68C",
+                "69A",
+                "69B",
+                "69C",
+                "69D",
+                "69E",
+                "69F",
+                "69J",
+                "70",
+                "70C",
+                "70D",
+                "70E",
+                "70F",
+                "70G",
+                "71A",
+                "71B",
+                "71C",
+                "71F",
+                "71G",
+                "71H",
+                "71J",
+                "71K",
+                "71L",
+                "72",
+                "73",
+                "74",
+                "75",
+                "76",
+                "77A",
+                "77B",
+                "77D",
+                "77E",
+                "77F",
+                "77G",
+                "77H",
+                "77J",
+                "77T",
+                "78",
+                "79",
+                "80C",
+                "82A",
+                "82B",
+                "82D",
+                "82J",
+                "82S",
+                "83A",
+                "83C",
+                "83D",
+                "83J",
+                "84A",
+                "84B",
+                "84D",
+                "84J",
+                "85A",
+                "85B",
+                "85D",
+                "85J",
+                "86",
+                "86A",
+                "86B",
+                "86D",
+                "86J",
+                "87A",
+                "87B",
+                "87D",
+                "87J",
+                "90A",
+                "90B",
+                "90C",
+                "90D",
+                "90E",
+                "90F",
+                "90J",
+                "91A",
+                "91B",
+                "91C",
+                "91D",
+                "91E",
+                "91F",
+                "91G",
+                "91H",
+                "92A",
+                "92B",
+                "92C",
+                "92D",
+                "92E",
+                "92F",
+                "92J",
+                "92K",
+                "92L",
+                "92M",
+                "92N",
+                "93A",
+                "93B",
+                "93C",
+                "93D",
+                "94A",
+                "94B",
+                "94C",
+                "94D",
+                "94F",
+                "94G",
+                "95C",
+                "95P",
+                "95Q",
+                "95R",
+                "95S",
+                "95T",
+                "95U",
+                "95V",
+                "97A",
+                "97B",
+                "97C",
+                "98A",
+                "98B",
+                "98C",
+                "98D",
+                "98E",
+                "99A",
+                "99B"
+            };
 
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MTParser"/> class.
-        /// </summary>
-        public MTParser()
-        {
-            this.LoadSwiftTags();
-        }
+
     }
 }

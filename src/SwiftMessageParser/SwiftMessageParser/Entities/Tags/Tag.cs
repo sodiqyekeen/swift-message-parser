@@ -1,6 +1,6 @@
 ﻿using SwiftMessageParser.Extensions;
 
-namespace SwiftMessageParser.Entities.MT.Tags
+namespace SwiftMessageParser.Entities.Tags
 {
   public class Tag
   {
@@ -18,7 +18,7 @@ namespace SwiftMessageParser.Entities.MT.Tags
 
     public void GetTagName(string swiftText)
     {
-      this.TagName = swiftText.ParseFromString(":", ":");
+      TagName = swiftText.ParseFromString(":", ":");
     }
   }
 }

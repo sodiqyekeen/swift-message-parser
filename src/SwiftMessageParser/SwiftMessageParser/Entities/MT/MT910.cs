@@ -1,13 +1,11 @@
-﻿using SwiftMessageParser.Entities;
-using SwiftMessageParser.Entities.MT;
-using SwiftMessageParser.Entities.MT.Tags;
-using SwiftMessageParser.Extensions;
-using System;
+﻿using System;
 using System.Linq;
+using SwiftMessageParser.Entities.Tags;
+using SwiftMessageParser.Extensions;
 
 namespace SwiftMessageParser.Entities.MT
 {
-   public class MT910 : IMessageType
+    public class MT910 : IMessageType
     {
         /// <summary>
         /// Gets or sets the sender reference.
@@ -39,7 +37,7 @@ namespace SwiftMessageParser.Entities.MT
         /// <value>
         /// The interbank settled amount.
         /// </value>
-        public double? InterbankSettledAmount { get; set; }
+        public decimal? InterbankSettledAmount { get; set; }
 
         /// <summary>
         /// Gets or sets the value date.
@@ -81,49 +79,33 @@ namespace SwiftMessageParser.Entities.MT
         /// </value>
         public string SenderBankBic { get; set; }
 
+        public string RawText { get; private set; }
         /// <summary>
         /// Parses the MT910.
         /// </summary>
         /// <param name="mt910Message">The MT910 message.</param>
         public void Parse(SwiftMessage mt910Message)
         {
-            this.SenderBankBic = mt910Message.Block2.SenderBIC ?? "";
+            RawText = mt910Message.RawText;
+            SenderBankBic = mt910Message.ApplicationHeader.SenderBIC ?? "";
 
-            var field20 = mt910Message.Block4.Where(x => x.TagName == "20").FirstOrDefault();
-            if (field20 != null)
-            {
-                ParseField20(field20);
-            }
+            var field20 = mt910Message.Body.Where(x => x.TagName == "20").FirstOrDefault();
+            if (field20 != null) ParseField20(field20);
 
-            var field21 = mt910Message.Block4.Where(x => x.TagName == "21").FirstOrDefault();
-            if (field21 != null)
-            {
-                ParseField21(field21);
-            }
+            var field21 = mt910Message.Body.Where(x => x.TagName == "21").FirstOrDefault();
+            if (field21 != null) ParseField21(field21);
 
-            var field25 = mt910Message.Block4.Where(x => x.TagName == "25").FirstOrDefault();
-            if (field25 != null)
-            {
-                ParseField25(field25);
-            }
+            var field25 = mt910Message.Body.Where(x => x.TagName == "25").FirstOrDefault();
+            if (field25 != null) ParseField25(field25);
 
-            var field32A = mt910Message.Block4.Where(x => x.TagName == "32A").FirstOrDefault();
-            if (field32A != null)
-            {
-                ParseField32A(field32A);
-            }
+            var field32A = mt910Message.Body.Where(x => x.TagName == "32A").FirstOrDefault();
+            if (field32A != null) ParseField32A(field32A);
 
-            var field50 = mt910Message.Block4.Where(x => x.TagName == "50A" || x.TagName == "50F" || x.TagName == "50K").FirstOrDefault();
-            if (field50 != null)
-            {
-                ParseField50(field50);
-            }
+            var field50 = mt910Message.Body.Where(x => x.TagName == "50A" || x.TagName == "50F" || x.TagName == "50K").FirstOrDefault();
+            if (field50 != null) ParseField50(field50);
 
-            var field52 = mt910Message.Block4.Where(x => x.TagName == "52A" || x.TagName == "52D").FirstOrDefault();
-            if (field52 != null)
-            {
-                ParseField52(field52);
-            }
+            var field52 = mt910Message.Body.Where(x => x.TagName == "52A" || x.TagName == "52D").FirstOrDefault();
+            if (field52 != null) ParseField52(field52);
         }
 
         public override string ToString()
@@ -142,28 +124,19 @@ namespace SwiftMessageParser.Entities.MT
         /// Parses the field20.
         /// </summary>
         /// <param name="field20">The field20.</param>
-        private void ParseField20(ITag field20)
-        {
-            this.SenderReference = field20.Value ?? "";
-        }
+        private void ParseField20(ITag field20) => SenderReference = field20.Value ?? "";
 
         /// <summary>
         /// Parses the field21.
         /// </summary>
         /// <param name="field21">The field21.</param>
-        private void ParseField21(ITag field21)
-        {
-            this.RelatedReference = field21.Value ?? "";
-        }
+        private void ParseField21(ITag field21) => RelatedReference = field21.Value ?? "";
 
         /// <summary>
         /// Parses the field25.
         /// </summary>
         /// <param name="field25">The field25.</param>
-        private void ParseField25(ITag field25)
-        {
-            this.AccountIdentification = field25.Value ?? "";
-        }
+        private void ParseField25(ITag field25) => AccountIdentification = field25.Value ?? "";
 
         /// <summary>
         /// Parses the field32 a.
@@ -171,28 +144,22 @@ namespace SwiftMessageParser.Entities.MT
         /// <param name="field32A">The field32 a.</param>
         private void ParseField32A(ITag field32A)
         {
-            this.ValueDate = field32A.Qualifier.CovertToDate("yyMMdd");
-            this.Currency = field32A.Code ?? "";
-            this.InterbankSettledAmount = Convert.ToDouble(field32A.Value.Replace(',', '.'));
+            ValueDate = field32A.Qualifier.CovertToDate("yyMMdd");
+            Currency = field32A.Code ?? "";
+            InterbankSettledAmount = Convert.ToDecimal(field32A.Value.Replace(',', '.'));
         }
 
         /// <summary>
         /// Parses the field50.
         /// </summary>
         /// <param name="field50">The field50.</param>
-        private void ParseField50(ITag field50)
-        {
-            this.OrderingCustomer = $"{field50.Value ?? ""} {field50.Qualifier ?? ""} {field50.Description ?? ""}";
-        }
+        private void ParseField50(ITag field50) => OrderingCustomer = $"{field50.Value ?? ""} {field50.Qualifier ?? ""} {field50.Description ?? ""}";
 
         /// <summary>
         /// Parses the field52.
         /// </summary>
         /// <param name="field52">The field52.</param>
-        private void ParseField52(ITag field52)
-        {
-            this.SendingBank = field52.Value ?? "";
-        }
+        private void ParseField52(ITag field52) => SendingBank = field52.Value ?? "";
 
     }
 }

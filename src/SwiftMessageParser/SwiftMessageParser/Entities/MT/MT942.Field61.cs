@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SwiftMessageParser.Entities.MT
 {
     public class Field61
     {
+        public string TransactionReference { get; set; }
+
         /// <summary>
         /// Gets or sets the related reference.
         /// </summary>
@@ -30,7 +28,7 @@ namespace SwiftMessageParser.Entities.MT
         /// <value>
         /// The interbank settled amount.
         /// </value>
-        public double? InterbankSettledAmount { get; set; }
+        public decimal? InterbankSettledAmount { get; set; }
 
         /// <summary>
         /// Gets or sets the currency.

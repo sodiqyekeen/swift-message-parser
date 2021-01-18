@@ -1,10 +1,10 @@
-﻿using SwiftMessageParser.Extensions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-
-namespace SwiftMessageParser.Entities.MT.Tags
+using SwiftMessageParser.Extensions;
+using SwiftMessageParser.Entities.Tags.Pattern;
+namespace SwiftMessageParser.Entities.Tags
 {
     public class TagFactory
     {
@@ -13,13 +13,13 @@ namespace SwiftMessageParser.Entities.MT.Tags
 
         public TagFactory()
         {
-            this.LoadITagDataTypes();
-            this.LoadTagToClassMappings();
+            LoadITagDataTypes();
+            LoadTagToClassMappings();
         }
-
+      
         public List<ITag> CreateInstance(string parsedSwiftTag, List<ITag> listOfITags)
         {
-            Type itagToCreate = this.GetITagToCreate(parsedSwiftTag.Substring(1, 3).TrimColon());
+            Type itagToCreate = GetITagToCreateV2(parsedSwiftTag.Substring(1, 3).TrimColon());
             if (itagToCreate != null)
             {
                 ITag instance = Activator.CreateInstance(itagToCreate) as ITag;
@@ -29,315 +29,321 @@ namespace SwiftMessageParser.Entities.MT.Tags
             return listOfITags;
         }
 
-        private Type GetITagToCreate(string iTagToInstatiate)
+        private Type GetITagToCreateV2(string iTagToCreate)
         {
-            foreach (KeyValuePair<string, string> keyValuePair in (IEnumerable<KeyValuePair<string, string>>)this._swiftTagToITagMapping.OrderBy<KeyValuePair<string, string>, string>((Func<KeyValuePair<string, string>, string>)(tm => tm.Key)))
-            {
-                if (keyValuePair.Key == iTagToInstatiate)
-                    iTagToInstatiate = this._swiftTagToITagMapping[keyValuePair.Key];
-            }
-            foreach (KeyValuePair<string, Type> keyValuePair in (IEnumerable<KeyValuePair<string, Type>>)this._mappings.OrderBy<KeyValuePair<string, Type>, string>((Func<KeyValuePair<string, Type>, string>)(map => map.Key)))
-            {
-                if (keyValuePair.Key.Contains(iTagToInstatiate.ToUpper()))
-                    return this._mappings[keyValuePair.Key];
-            }
-            return (Type)null;
+            iTagToCreate = _swiftTagToITagMapping.Where(st => st.Key.Equals(iTagToCreate)).FirstOrDefault().Value;
+            return string.IsNullOrEmpty(iTagToCreate) ? null : _mappings.Where(m => m.Key.Equals(iTagToCreate.ToUpper())).FirstOrDefault().Value;
         }
+
+        //private Type GetITagToCreate(string iTagToInstatiate)
+        //{
+        //    foreach (KeyValuePair<string, string> keyValuePair in _swiftTagToITagMapping.OrderBy(tm => tm.Key))
+        //    {
+        //        if (keyValuePair.Key == iTagToInstatiate)
+        //            iTagToInstatiate = _swiftTagToITagMapping[keyValuePair.Key];
+        //    }
+        //    foreach (KeyValuePair<string, Type> keyValuePair in _mappings.OrderBy(map => map.Key))
+        //    {
+        //        if (keyValuePair.Key.Contains(iTagToInstatiate.ToUpper()))
+        //            return _mappings[keyValuePair.Key];
+        //    }
+        //    return null;
+        //}
 
         private void LoadITagDataTypes()
         {
-            this._mappings = new Dictionary<string, Type>();
+            _mappings = new Dictionary<string, Type>();
             foreach (Type type in Assembly.GetExecutingAssembly().GetTypes())
             {
                 if (type.GetInterface(typeof(ITag).ToString()) != null)
-                    this._mappings.Add(type.Name.ToUpper(), type);
+                    _mappings.Add(type.Name.ToUpper(), type);
             }
         }
 
-        private void LoadTagToClassMappings()
-        {
-            this._swiftTagToITagMapping = new Dictionary<string, string>();
-            this._swiftTagToITagMapping.Add("11A", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("12C", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("13A", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("13J", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("17B", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("20C", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("20D", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("22H", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("36C", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("69J", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("70C", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("70E", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("90E", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("92A", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("92K", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("94C", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("95C", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("95P", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("95Q", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("97A", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("97C", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("98A", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("98C", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("99A", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("99B", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("32B", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("32G", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("32M", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("32U", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("33B", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("33E", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("33F", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("34B", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("71F", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("71G", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("71H", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("71J", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("71K", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("71L", "PatternCurrencyAmount");
-            this._swiftTagToITagMapping.Add("12A", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("12B", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("13B", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("25D", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("22F", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("24B", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("38B", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("92C", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("93A", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("94D", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("94F", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("98B", "PatternOptionalCode");
-            this._swiftTagToITagMapping.Add("12", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("12E", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("12F", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("13E", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("14", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("14C", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("14D", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("14F", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("14J", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("14S", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("16A", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("16R", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("16S", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("17A", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("17F", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("17G", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("17N", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("17O", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("17R", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("17T", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("17U", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("17V", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("18A", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("19", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("20", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("21", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("21A", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("21B", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("21C", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("21D", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("21E", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("21F", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("21G", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("21N", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("21P", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("21R", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("22A", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("22B", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("22D", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("22E", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("22G", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("22J", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("22X", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("23B", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("23D", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("25", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("26E", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("26F", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("26H", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("26T", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("29C", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("29H", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("30", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("30F", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("30H", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("30P", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("30Q", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("30T", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("30U", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("30V", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("30X", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("31C", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("31E", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("31L", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("31S", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("32E", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("32J", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("35", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("35C", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("35D", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("36", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("36A", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("37J", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("37L", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("37P", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("37U", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("38A", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("38D", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("38E", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("39B", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("40A", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("40F", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("43P", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("43T", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("44A", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("44B", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("44C", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("44E", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("44F", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("49", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("50L", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("70", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("71A", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("94A", "PatternGetReference");
-            this._swiftTagToITagMapping.Add("50A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("50G", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("50H", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("50K", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("50F", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("52A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("52D", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("52G", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("53A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("53B", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("53D", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("54A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("54B", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("54D", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("55A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("55D", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("56A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("56D", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("57A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("57D", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("58A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("58D", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("59", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("59A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("59F", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("61", "PatternDoubleSlashSeperator");
-            this._swiftTagToITagMapping.Add("82A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("82B", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("82D", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("83A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("83D", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("84A", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("84D", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("86", "PatternSlashConditionalLines");
-            this._swiftTagToITagMapping.Add("32A", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("32C", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("32D", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("32P", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("33A", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("33C", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("33D", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("33P", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("33R", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("34A", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("34P", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("34R", "PatternYYMMDDCurrencyAmount");
-            this._swiftTagToITagMapping.Add("13K", "PatternDoubleSlashTypeQuantity");
-            this._swiftTagToITagMapping.Add("36B", "PatternDoubleSlashTypeQuantity");
-            this._swiftTagToITagMapping.Add("90A", "PatternDoubleSlashTypeQuantity");
-            this._swiftTagToITagMapping.Add("94B", "PatternOptionalCodeWithOptionalNarrative");
-            this._swiftTagToITagMapping.Add("97B", "PatternOptionalCodeWithOptionalNarrative");
-            this._swiftTagToITagMapping.Add("19A", "PatternSignCurrencyAmount");
-            this._swiftTagToITagMapping.Add("19B", "PatternSignCurrencyAmount");
-            this._swiftTagToITagMapping.Add("32H", "PatternSignCurrencyAmount");
-            this._swiftTagToITagMapping.Add("14G", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("23A", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("27", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("28D", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("28E", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("29E", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("29K", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("30G", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("32Q", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("38G", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("38H", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("39A", "PatternSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("15A", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15B", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15C", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15D", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15E", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15F", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15G", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15H", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15I", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15J", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15K", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15L", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15M", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("15N", "PatternSequenceSeperator");
-            this._swiftTagToITagMapping.Add("22K", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("23C", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("23E", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("23F", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("24D", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("25A", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("26N", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("26P", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("28", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("28C", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("29J", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("31R", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("40C", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("40E", "PatternOptionalSingleSlashSeperator");
-            this._swiftTagToITagMapping.Add("29A", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("29B", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("29F", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("35E", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("35F", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("35L", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("37N", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("39C", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("40B", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("42C", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("42M", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("42P", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("44D", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("45A", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("45B", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("46A", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("46B", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("47A", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("47B", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("48", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("50", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("73", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("74", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("75", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("76", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("80C", "PatternGetAllLines");
-            this._swiftTagToITagMapping.Add("32F", "PatternNNNValue");
-            this._swiftTagToITagMapping.Add("33S", "PatternNNNValue");
-            this._swiftTagToITagMapping.Add("33T", "PatternNNNValue");
-            this._swiftTagToITagMapping.Add("35A", "PatternNNNValue");
-            this._swiftTagToITagMapping.Add("35S", "PatternNNNValue");
-            this._swiftTagToITagMapping.Add("90B", "PatternAmountTypeCurrencyValue");
-            this._swiftTagToITagMapping.Add("95R", "PatternCodeWithNarrative");
-            this._swiftTagToITagMapping.Add("39P", "PatternQualifierSlashCurrencyAmount");
-            this._swiftTagToITagMapping.Add("51C", "PatternPrecedingSlash");
-            this._swiftTagToITagMapping.Add("52C", "PatternPrecedingSlash");
-            this._swiftTagToITagMapping.Add("53C", "PatternPrecedingSlash");
-            this._swiftTagToITagMapping.Add("56C", "PatternPrecedingSlash");
-            this._swiftTagToITagMapping.Add("57C", "PatternPrecedingSlash");
-            this._swiftTagToITagMapping.Add("58C", "PatternPrecedingSlash");
-            this._swiftTagToITagMapping.Add("83C", "PatternPrecedingSlash");
-            this._swiftTagToITagMapping.Add("23G", "PatternOptionalSubFunction");
-        }
+        private void LoadTagToClassMappings() => _swiftTagToITagMapping = new Dictionary<string, string>
+            {
+                { "11A", Patterns.DoubleSlashSeperator },
+                { "12", Patterns.GetReference },
+                { "12A", Patterns.OptionalCode },
+                { "12B", Patterns.OptionalCode },
+                { "12C", Patterns.DoubleSlashSeperator },
+                { "12E", Patterns.GetReference },
+                { "12F", Patterns.GetReference },
+                { "13A", Patterns.DoubleSlashSeperator },
+                { "13B", Patterns.OptionalCode },
+                { "13E", Patterns.GetReference },
+                { "13J", Patterns.DoubleSlashSeperator },
+                { "13K", Patterns.DoubleSlashTypeQuantity },
+                { "14", Patterns.GetReference },
+                { "14C", Patterns.GetReference },
+                { "14D", Patterns.GetReference },
+                { "14F", Patterns.GetReference },
+                { "14G", Patterns.SingleSlashSeperator },
+                { "14J", Patterns.GetReference },
+                { "14S", Patterns.GetReference },
+                { "15A", Patterns.SequenceSeperator },
+                { "15B", Patterns.SequenceSeperator },
+                { "15C", Patterns.SequenceSeperator },
+                { "15D", Patterns.SequenceSeperator },
+                { "15E", Patterns.SequenceSeperator },
+                { "15F", Patterns.SequenceSeperator },
+                { "15G", Patterns.SequenceSeperator },
+                { "15H", Patterns.SequenceSeperator },
+                { "15I", Patterns.SequenceSeperator },
+                { "15J", Patterns.SequenceSeperator },
+                { "15K", Patterns.SequenceSeperator },
+                { "15L", Patterns.SequenceSeperator },
+                { "15M", Patterns.SequenceSeperator },
+                { "15N", Patterns.SequenceSeperator },
+                { "16A", Patterns.GetReference },
+                { "16R", Patterns.GetReference },
+                { "16S", Patterns.GetReference },
+                { "17A", Patterns.GetReference },
+                { "17B", Patterns.DoubleSlashSeperator },
+                { "17F", Patterns.GetReference },
+                { "17G", Patterns.GetReference },
+                { "17N", Patterns.GetReference },
+                { "17O", Patterns.GetReference },
+                { "17R", Patterns.GetReference },
+                { "17T", Patterns.GetReference },
+                { "17U", Patterns.GetReference },
+                { "17V", Patterns.GetReference },
+                { "18A", Patterns.GetReference },
+                { "19", Patterns.GetReference },
+                { "19A", Patterns.SignCurrencyAmount },
+                { "19B", Patterns.SignCurrencyAmount },
+                { "20", Patterns.GetReference },
+                { "20C", Patterns.DoubleSlashSeperator },
+                { "20D", Patterns.DoubleSlashSeperator },
+                { "21", Patterns.GetReference },
+                { "21A", Patterns.GetReference },
+                { "21B", Patterns.GetReference },
+                { "21C", Patterns.GetReference },
+                { "21D", Patterns.GetReference },
+                { "21E", Patterns.GetReference },
+                { "21F", Patterns.GetReference },
+                { "21G", Patterns.GetReference },
+                { "21N", Patterns.GetReference },
+                { "21P", Patterns.GetReference },
+                { "21R", Patterns.GetReference },
+                { "22A", Patterns.GetReference },
+                { "22B", Patterns.GetReference },
+                { "22D", Patterns.GetReference },
+                { "22E", Patterns.GetReference },
+                { "22F", Patterns.OptionalCode },
+                { "22G", Patterns.GetReference },
+                { "22H", Patterns.DoubleSlashSeperator },
+                { "22J", Patterns.GetReference },
+                { "22K", Patterns.OptionalSingleSlashSeperator },
+                { "22X", Patterns.GetReference },
+                { "23A", Patterns.SingleSlashSeperator },
+                { "23B", Patterns.GetReference },
+                { "23C", Patterns.OptionalSingleSlashSeperator },
+                { "23D", Patterns.GetReference },
+                { "23E", Patterns.OptionalSingleSlashSeperator },
+                { "23F", Patterns.OptionalSingleSlashSeperator },
+                { "23G", Patterns.OptionalSubFunction },
+                { "24B", Patterns.OptionalCode },
+                { "24D", Patterns.OptionalSingleSlashSeperator },
+                { "25", Patterns.GetReference },
+                { "25A", Patterns.OptionalSingleSlashSeperator },
+                { "25D", Patterns.OptionalCode },
+                { "26E", Patterns.GetReference },
+                { "26F", Patterns.GetReference },
+                { "26H", Patterns.GetReference },
+                { "26N", Patterns.OptionalSingleSlashSeperator },
+                { "26P", Patterns.OptionalSingleSlashSeperator },
+                { "26T", Patterns.GetReference },
+                { "27", Patterns.SingleSlashSeperator },
+                { "28", Patterns.OptionalSingleSlashSeperator },
+                { "28C", Patterns.OptionalSingleSlashSeperator },
+                { "28D", Patterns.SingleSlashSeperator },
+                { "28E", Patterns.SingleSlashSeperator },
+                { "29A", Patterns.GetAllLines },
+                { "29B", Patterns.GetAllLines },
+                { "29C", Patterns.GetReference },
+                { "29E", Patterns.SingleSlashSeperator },
+                { "29F", Patterns.GetAllLines },
+                { "29J", Patterns.OptionalSingleSlashSeperator },
+                { "29K", Patterns.SingleSlashSeperator },
+                { "29H", Patterns.GetReference },
+                { "30", Patterns.GetReference },
+                { "30F", Patterns.GetReference },
+                { "30G", Patterns.SingleSlashSeperator },
+                { "30H", Patterns.GetReference },
+                { "30P", Patterns.GetReference },
+                { "30Q", Patterns.GetReference },
+                { "30T", Patterns.GetReference },
+                { "30U", Patterns.GetReference },
+                { "30V", Patterns.GetReference },
+                { "30X", Patterns.GetReference },
+                { "31C", Patterns.GetReference },
+                { "31E", Patterns.GetReference },
+                { "31L", Patterns.GetReference },
+                { "31R", Patterns.OptionalSingleSlashSeperator },
+                { "31S", Patterns.GetReference },
+                { "32A", Patterns.YYMMDDCurrencyAmount },
+                { "32B", Patterns.CurrencyAmount },
+                { "32C", Patterns.YYMMDDCurrencyAmount },
+                { "32D", Patterns.YYMMDDCurrencyAmount },
+                { "32E", Patterns.GetReference },
+                { "32F", Patterns.NNNValue },
+                { "32G", Patterns.CurrencyAmount },
+                { "32H", Patterns.SignCurrencyAmount },
+                { "32J", Patterns.GetReference },
+                { "32M", Patterns.CurrencyAmount },
+                { "32P", Patterns.YYMMDDCurrencyAmount },
+                { "32Q", Patterns.SingleSlashSeperator },
+                { "32U", Patterns.CurrencyAmount },
+                { "33A", Patterns.YYMMDDCurrencyAmount },
+                { "33B", Patterns.CurrencyAmount },
+                { "33C", Patterns.YYMMDDCurrencyAmount },
+                { "33D", Patterns.YYMMDDCurrencyAmount },
+                { "33E", Patterns.CurrencyAmount },
+                { "33F", Patterns.CurrencyAmount },
+                { "33P", Patterns.YYMMDDCurrencyAmount },
+                { "33R", Patterns.YYMMDDCurrencyAmount },
+                { "33S", Patterns.NNNValue },
+                { "33T", Patterns.NNNValue },
+                { "34A", Patterns.YYMMDDCurrencyAmount },
+                { "34B", Patterns.CurrencyAmount },
+                { "34F", Patterns.CurrencyAmount },
+                { "34P", Patterns.YYMMDDCurrencyAmount },
+                { "34R", Patterns.YYMMDDCurrencyAmount },
+                { "35", Patterns.GetReference },
+                { "35A", Patterns.NNNValue },
+                { "35C", Patterns.GetReference },
+                { "35D", Patterns.GetReference },
+                { "35E", Patterns.GetAllLines },
+                { "35F", Patterns.GetAllLines },
+                { "35L", Patterns.GetAllLines },
+                { "35S", Patterns.NNNValue },
+                { "36", Patterns.GetReference },
+                { "36A", Patterns.GetReference },
+                { "36B", Patterns.DoubleSlashTypeQuantity },
+                { "36C", Patterns.DoubleSlashSeperator },
+                { "37J", Patterns.GetReference },
+                { "37L", Patterns.GetReference },
+                { "37N", Patterns.GetAllLines },
+                { "37P", Patterns.GetReference },
+                { "37U", Patterns.GetReference },
+                { "38A", Patterns.GetReference },
+                { "38B", Patterns.OptionalCode },
+                { "38D", Patterns.GetReference },
+                { "38E", Patterns.GetReference },
+                { "38G", Patterns.SingleSlashSeperator },
+                { "38H", Patterns.SingleSlashSeperator },
+                { "39A", Patterns.SingleSlashSeperator },
+                { "39B", Patterns.GetReference },
+                { "39C", Patterns.GetAllLines },
+                { "39P", Patterns.QualifierSlashCurrencyAmount },
+                { "40A", Patterns.GetReference },
+                { "40B", Patterns.GetAllLines },
+                { "40C", Patterns.OptionalSingleSlashSeperator },
+                { "40E", Patterns.OptionalSingleSlashSeperator },
+                { "40F", Patterns.GetReference },
+                { "42C", Patterns.GetAllLines },
+                { "42M", Patterns.GetAllLines },
+                { "42P", Patterns.GetAllLines },
+                { "43P", Patterns.GetReference },
+                { "43T", Patterns.GetReference },
+                { "44A", Patterns.GetReference },
+                { "44B", Patterns.GetReference },
+                { "44C", Patterns.GetReference },
+                { "44D", Patterns.GetAllLines },
+                { "44E", Patterns.GetReference },
+                { "44F", Patterns.GetReference },
+                { "45A", Patterns.GetAllLines },
+                { "45B", Patterns.GetAllLines },
+                { "46A", Patterns.GetAllLines },
+                { "46B", Patterns.GetAllLines },
+                { "47A", Patterns.GetAllLines },
+                { "47B", Patterns.GetAllLines },
+                { "48", Patterns.GetAllLines },
+                { "49", Patterns.GetReference },
+                { "50", Patterns.GetAllLines },
+                { "50A", Patterns.SlashConditionalLines },
+                { "50F", Patterns.SlashConditionalLines },
+                { "50G", Patterns.SlashConditionalLines },
+                { "50H", Patterns.SlashConditionalLines },
+                { "50K", Patterns.SlashConditionalLines },
+                { "50L", Patterns.GetReference },
+                { "51C", Patterns.PrecedingSlash },
+                { "52A", Patterns.SlashConditionalLines },
+                { "52C", Patterns.PrecedingSlash },
+                { "52D", Patterns.SlashConditionalLines },
+                { "52G", Patterns.SlashConditionalLines },
+                { "53A", Patterns.SlashConditionalLines },
+                { "53B", Patterns.SlashConditionalLines },
+                { "53C", Patterns.PrecedingSlash },
+                { "53D", Patterns.SlashConditionalLines },
+                { "54A", Patterns.SlashConditionalLines },
+                { "54B", Patterns.SlashConditionalLines },
+                { "54D", Patterns.SlashConditionalLines },
+                { "55A", Patterns.SlashConditionalLines },
+                { "55D", Patterns.SlashConditionalLines },
+                { "56A", Patterns.SlashConditionalLines },
+                { "56C", Patterns.PrecedingSlash },
+                { "56D", Patterns.SlashConditionalLines },
+                { "57A", Patterns.SlashConditionalLines },
+                { "57C", Patterns.PrecedingSlash },
+                { "57D", Patterns.SlashConditionalLines },
+                { "58A", Patterns.SlashConditionalLines },
+                { "58C", Patterns.PrecedingSlash },
+                { "58D", Patterns.SlashConditionalLines },
+                { "59", Patterns.SlashConditionalLines },
+                { "59A", Patterns.SlashConditionalLines },
+                { "59F", Patterns.SlashConditionalLines },
+                { "61", Patterns.DoubleSlashSeperator },
+                { "69J", Patterns.DoubleSlashSeperator },
+                { "70", Patterns.GetReference },
+                { "70C", Patterns.DoubleSlashSeperator },
+                { "70E", Patterns.DoubleSlashSeperator },
+                { "71A", Patterns.GetReference },
+                { "71F", Patterns.CurrencyAmount },
+                { "71G", Patterns.CurrencyAmount },
+                { "71H", Patterns.CurrencyAmount },
+                { "71J", Patterns.CurrencyAmount },
+                { "71K", Patterns.CurrencyAmount },
+                { "71L", Patterns.CurrencyAmount },
+                { "73", Patterns.GetAllLines },
+                { "74", Patterns.GetAllLines },
+                { "75", Patterns.GetAllLines },
+                { "76", Patterns.GetAllLines },
+                { "80C", Patterns.GetAllLines },
+                { "82A", Patterns.SlashConditionalLines },
+                { "82B", Patterns.SlashConditionalLines },
+                { "82D", Patterns.SlashConditionalLines },
+                { "83A", Patterns.SlashConditionalLines },
+                { "83C", Patterns.PrecedingSlash },
+                { "83D", Patterns.SlashConditionalLines },
+                { "84A", Patterns.SlashConditionalLines },
+                { "84D", Patterns.SlashConditionalLines },
+                { "86", Patterns.SlashConditionalLines },
+                { "90A", Patterns.DoubleSlashTypeQuantity },
+                { "90B", Patterns.AmountTypeCurrencyValue },
+                { "90E", Patterns.DoubleSlashSeperator },
+                { "92A", Patterns.DoubleSlashSeperator },
+                { "92C", Patterns.OptionalCode },
+                { "92K", Patterns.DoubleSlashSeperator },
+                { "93A", Patterns.OptionalCode },
+                { "94A", Patterns.GetReference },
+                { "94B", Patterns.OptionalCodeWithOptionalNarrative },
+                { "94C", Patterns.DoubleSlashSeperator },
+                { "94D", Patterns.OptionalCode },
+                { "94F", Patterns.OptionalCode },
+                { "95C", Patterns.DoubleSlashSeperator },
+                { "95P", Patterns.DoubleSlashSeperator },
+                { "95Q", Patterns.DoubleSlashSeperator },
+                { "95R", Patterns.CodeWithNarrative },
+                { "97A", Patterns.DoubleSlashSeperator },
+                { "97B", Patterns.OptionalCodeWithOptionalNarrative },
+                { "97C", Patterns.DoubleSlashSeperator },
+                { "98A", Patterns.DoubleSlashSeperator },
+                { "98B", Patterns.OptionalCode },
+                { "98C", Patterns.DoubleSlashSeperator },
+                { "99A", Patterns.DoubleSlashSeperator },
+                { "99B", Patterns.DoubleSlashSeperator }
+            };
     }
 }

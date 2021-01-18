@@ -1,17 +1,12 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SwiftMessageParser.Extensions
 {
-    public static class StringExtensions
+    internal static class StringExtensions
     {
-        public static string ConvertFromUnix(this string value)
-        {
-            return value.Replace("\n", "\r\n");
-        }
-
-
         /// <summary>
         /// Gets the substring between the index of string a and b from the source string.
         /// </summary>
@@ -23,13 +18,23 @@ namespace SwiftMessageParser.Extensions
         {
             int startIndex1 = value.IndexOf(a);
             int num = value.IndexOf(b, startIndex1);
-            if (startIndex1 == -1 || num == -1)
-                return "";
+            if (startIndex1 == -1 || num == -1) return string.Empty;
             int startIndex2 = startIndex1 + a.Length;
-            if (startIndex2 >= num)
-                return "";
-            return value.Substring(startIndex2, num - startIndex2);
+            return startIndex2 >= num ? string.Empty : value.Substring(startIndex2, num - startIndex2);
         }
+
+        public static string Before(this string value, string str) =>
+            value.IndexOf(str) > 1 ?
+            value.Substring(0, value.IndexOf(str)) :
+            value;
+
+        public static string After(this string value, string str) =>
+            value.IndexOf(str) > -1 ?
+            value.Substring(value.IndexOf(str) + str.Length) :
+            value;
+
+        public static string RemoveSpecialCharactersAndLetter(this string value) =>
+            new string(value.Where(c => char.IsDigit(c)).ToArray());
 
 
         /// <summary>
@@ -48,7 +53,12 @@ namespace SwiftMessageParser.Extensions
             int startIndex2 = startIndex1 + a.Length;
             if (startIndex2 >= num)
                 return "";
-            return value.Substring(startIndex2, num - startIndex2 + 3).Replace(",", ".");
+            string temp = value.Substring(startIndex2, num - startIndex2 + 3).Replace(",", ".");
+            return decimal.TryParse(temp, out _)
+                ? temp
+                : decimal.TryParse(temp.Substring(0, temp.Length - 1), out _)
+                ? temp.Substring(0, temp.Length - 1)
+                : temp.Substring(0, temp.Length - 3);
         }
 
         /// <summary>
@@ -62,11 +72,8 @@ namespace SwiftMessageParser.Extensions
         {
             int num1 = value.IndexOf(a);
             string str = value.Substring(num1 + a.Length);
-            int num2 = value.Length - str.Length;
             int length = str.IndexOf(b);
-            if (num1 == -1 || length == -1)
-                return "";
-            return str.Substring(0, length);
+            return num1 == -1 || length == -1 ? "" : str.Substring(0, length);
         }
 
 
@@ -117,32 +124,22 @@ namespace SwiftMessageParser.Extensions
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns></returns>
-        public static string TrimAllNewLines(this string value)
-        {
-            return value.Replace(Environment.NewLine, " ").Trim();
-        }
+        public static string TrimAllNewLines(this string value) =>
+             value.Replace(Environment.NewLine, " ").Trim();
 
         /// <summary>
         /// Trims the colon.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns></returns>
-        public static string TrimColon(this string value)
-        {
-            value = value.Trim(':');
-            return value;
-        }
+        public static string TrimColon(this string value) => value.Trim(':');
 
         /// <summary>
         /// Trims the end of swift message.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns></returns>
-        public static string TrimEndOfSwift(this string value)
-        {
-            value = value.Trim('-', '}');
-            return value;
-        }
+        public static string TrimEndOfSwift(this string value) => value.Trim('-', '}');
 
         /// <summary>
         /// Gets the swift tag.
@@ -150,103 +147,18 @@ namespace SwiftMessageParser.Extensions
         /// <param name="value">The value.</param>
         /// <param name="a">a.</param>
         /// <returns></returns>
-        public static int GetSwiftTag(this string value, int a)
+        public static int GetNextSwiftTagIndex(this string value, int a, List<string> swiftTags)
         {
-            int num = 6;
-            if (value.Substring(a, 2) == ":")
-                ++num;
-            if (value.Substring(a, 1) != ":")
-                ++num;
-            int startIndex = a + num;
-
-            return value.IndexOf(":", startIndex) - a;
-        }
-
-
-        /// <summary>
-        /// Trims the excess colon.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns></returns>
-        public static string TrimExcessColon(this string value)
-        {
-            var foundIndexes = new List<int>();
-            for (int i = value.IndexOf(':'); i > -1; i = value.IndexOf(':', i + 1))
+            if (swiftTags.Any(t => value.Substring(a + 1).Contains($":{t}:")))
             {
-                foundIndexes.Add(i);
+                int num = 6;
+                if (value.Substring(a, 2) == ":" || value.Substring(a, 1) != ":")
+                    ++num;
+                int startIndex = a + num;
+
+                return value.IndexOf(":", startIndex) - a;
             }
-            string tempString = string.Empty;
-            foreach (int index in foundIndexes)
-            {
-                if (Char.IsLetter(Convert.ToChar(value.Substring(index - 2, 1))))
-                {
-                    tempString = value.Remove(index - 1, 3);
-                }
-            }
-            return tempString;
-        }
-
-        /// <summary>
-        /// Trims the uneccessary data.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns></returns>
-        public static string TrimUneccessaryData(this string value)
-        {
-            int length1 = value.Length;
-            int num = 0;
-            StringBuilder newString = new StringBuilder(value);
-            int index = 0;
-            while (num < length1)
-            {
-                index = value.IndexOf(':', num);
-                if (index > 0)
-                {
-                    if (value.Substring(index - 2, 1) == "{")
-                        ++index;
-                    else if (value.Substring(index - 4, 1) == "{")
-                        ++index;
-                    else if (value.Substring(index + 3, 1) == ":" || value.Substring(index + 4, 1) == ":")
-                        ++index;
-                    else if (value.Substring(index - 3, 1) == ":" || value.Substring(index - 4, 1) == ":")
-                        ++index;
-                    else
-                    {
-                        newString[index] = ' ';
-                        ++index;
-                    }
-
-                    num = index;
-                }
-                else
-                    break;
-            }
-
-            return newString.ToString();
-        }
-
-        /// <summary>
-        /// Substring2s the specified start index.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="startIndex">The start index.</param>
-        /// <param name="length">The length.</param>
-        /// <returns></returns>
-        public static string Substring2(this string value, int startIndex, int length)
-        {
-            if (value.Length <= length)
-                return value;
-            return value.Substring(startIndex, length);
-        }
-
-        /// <summary>
-        /// Cleans up file path.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns></returns>
-        public static string CleanUpFilePath(this string value)
-        {
-            return value.Replace("/", "").Replace(",", "").Replace("'", "").Replace(".", "");
+            return -1;
         }
 
         /// <summary>
@@ -255,9 +167,7 @@ namespace SwiftMessageParser.Extensions
         /// <param name="value">The string value.</param>
         /// <param name="dateFormat">The date format.</param>
         /// <returns></returns>
-        public static DateTime CovertToDate(this string value, string dateFormat)
-        {
-            return DateTime.ParseExact(value, dateFormat, null);
-        }
+        public static DateTime CovertToDate(this string value, string dateFormat) =>
+            DateTime.ParseExact(value, dateFormat, null);
     }
 }

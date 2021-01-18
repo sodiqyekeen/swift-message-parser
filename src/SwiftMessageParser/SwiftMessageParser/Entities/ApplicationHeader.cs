@@ -1,12 +1,4 @@
-﻿
-// Type: SwiftMessageParser.Entities.ApplicationHeader
-// Assembly: SwiftMessageParser, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
-// MVID: EFC8C9C4-3B99-44EA-BCBA-17BF9BD684F2
-// Assembly location: C:\Users\Zach\Documents\SwiftMessageParser.dll
-
-using System.Collections.Generic;
-
-namespace SwiftMessageParser.Entities
+﻿namespace SwiftMessageParser.Entities
 {
     public class ApplicationHeader
     {
@@ -45,23 +37,12 @@ namespace SwiftMessageParser.Entities
         /// <summary>
         /// Initializes a new instance of the <see cref="ApplicationHeader"/> class.
         /// </summary>
-        public ApplicationHeader()
+        /// <param name="str">The string.</param>
+        public ApplicationHeader(string str)
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ApplicationHeader"/> class.
-        /// </summary>
-        /// <param name="parsedSwiftMessage">The parsed swift message.</param>
-        public ApplicationHeader(Dictionary<string, string> parsedSwiftMessage)
-        {
-            string str = parsedSwiftMessage[nameof(ApplicationHeader)];
-            this.SwiftDirection = str.Substring(0, 1);
-            this.MessageType = str.Substring(1, 3);
-            if (str.Length < 24)
-                this.SenderBIC = str.Substring(4, 8);
-            else
-                this.SenderBIC = str.Substring(14, 8);
+            SwiftDirection = str.Substring(0, 1);
+            MessageType = str.Substring(1, 3);
+            SenderBIC = str.Length < 24 ? str.Substring(4, 8) : str.Substring(14, 8);
         }
     }
 }

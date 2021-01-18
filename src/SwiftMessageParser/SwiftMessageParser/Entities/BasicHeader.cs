@@ -1,10 +1,4 @@
-﻿
-// Type: SwiftMessageParser.Entities.BasicHeader
-// Assembly: SwiftMessageParser, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
-// MVID: EFC8C9C4-3B99-44EA-BCBA-17BF9BD684F2
-// Assembly location: C:\Users\Zach\Documents\SwiftMessageParser.dll
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace SwiftMessageParser.Entities
 {
@@ -56,8 +50,14 @@ namespace SwiftMessageParser.Entities
         public BasicHeader(Dictionary<string, string> parsedSwiftMessage)
         {
             string str = parsedSwiftMessage[nameof(BasicHeader)];
-            this.ReceiverBIC = str.Substring(3, 8);
-            this.BranchCode = str.Substring(12, 3);
+            ReceiverBIC = str.Substring(3, 8);
+            BranchCode = str.Substring(12, 3);
+        }
+
+        public BasicHeader(string str)
+        {
+            ReceiverBIC = str.Substring(3, 8);
+            BranchCode = str.Substring(12, 3);
         }
     }
 }

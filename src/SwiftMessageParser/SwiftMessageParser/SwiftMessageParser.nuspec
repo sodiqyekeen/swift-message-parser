@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>Sodiq Yekeen</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/Bro-Zach/SwiftMessageParser</projectUrl>
+    <iconUrl>https://github.com/Bro-Zach/SwiftMessageParser/blob/Development/swift.png</iconUrl>
+    <description>Parses swift formatted message (MT103, M910 and MT942) from text file.</description>
+    <releaseNotes>Initial release version. This version can parse a swift formatted text file to a json object for the following message types: MT103, MT910 and MT942.</releaseNotes>
+    <copyright>$copyright$</copyright>
+    <tags>swiftmessageparser mt103 mt910 mt942</tags>
+  </metadata>
+</package>

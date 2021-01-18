@@ -1,10 +1,8 @@
-﻿using SwiftMessageParser.Entities;
-using SwiftMessageParser.Entities.MT;
-using SwiftMessageParser.Entities.MT.Tags;
-using SwiftMessageParser.Extensions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using SwiftMessageParser.Entities.Tags;
+using SwiftMessageParser.Extensions;
 
 namespace SwiftMessageParser.Entities.MT
 {
@@ -48,7 +46,7 @@ namespace SwiftMessageParser.Entities.MT
         /// <value>
         /// The interbank settled amount.
         /// </value>
-        public double? InterbankSettledAmount { get; set; }
+        public decimal? InterbankSettledAmount { get; set; }
 
         /// <summary>
         /// Gets or sets the value date.
@@ -122,24 +120,17 @@ namespace SwiftMessageParser.Entities.MT
         /// </value>
         public string SenderCharges { get; set; }
 
+        public string RawText { get; private set; }
         /// <summary>
         /// Parses the MT103.
         /// </summary>
         /// <param name="mt103Message">The MT103 message.</param>
         public void Parse(SwiftMessage mt103Message)
         {
-            try
-            {
-                //log request
-                this.SenderBankBic = mt103Message.Block2.SenderBIC ?? "";
-                this.Uetr = mt103Message.Block3.Uetr ?? "";
-
-                ParseBlock4(mt103Message.Block4);
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            RawText = mt103Message.RawText;
+            SenderBankBic = mt103Message.ApplicationHeader.SenderBIC ?? "";
+            Uetr = mt103Message.UserHeader.Uetr ?? "";
+            ParseBlock4(mt103Message.Body);
         }
 
         /// <summary>
@@ -150,107 +141,67 @@ namespace SwiftMessageParser.Entities.MT
         {
             var field20 = block4.Where(x => x.TagName == "20").FirstOrDefault();
 
-            if (field20 != null)
-            {
-                ParseField20(field20);
-            }
+            if (field20 != null) ParseField20(field20);
 
             var field23B = block4.Where(x => x.TagName == "23B").FirstOrDefault();
-            if (field23B != null)
-            {
-                ParseField23B(field23B);
-            }
+            if (field23B != null) ParseField23B(field23B);
 
             var field32A = block4.Where(x => x.TagName == "32A").FirstOrDefault();
-            if (field32A != null)
-            {
-                ParseField32A(field32A);
-            }
+            if (field32A != null) ParseField32A(field32A);
 
             var field50 = block4.Where(x => x.TagName == "50A" || x.TagName == "50F" || x.TagName == "50K").FirstOrDefault();
-            if (field50 != null)
-            {
-                ParseField50(field50);
-            }
+            if (field50 != null) ParseField50(field50);
 
             var field52 = block4.Where(x => x.TagName == "52A" || x.TagName == "52D").FirstOrDefault();
-            if (field52 != null)
-            {
-                ParseField52(field52);
-            }
+            if (field52 != null) ParseField52(field52);
 
             var field59 = block4.Where(x => x.TagName == "59" || x.TagName == "59A" || x.TagName == "59F").FirstOrDefault();
-            if (field59 != null)
-            {
-                ParseField59(field59);
-            }
+            if (field59 != null) ParseField59(field59);
 
             var field70 = block4.Where(x => x.TagName == "70").FirstOrDefault();
-            if (field70 != null)
-            {
-                ParseField70(field70);
-            }
+            if (field70 != null) ParseField70(field70);
 
             var field71A = block4.Where(x => x.TagName == "71A").FirstOrDefault();
-            if (field71A != null)
-            {
-                ParseField71A(field71A);
-            }
+            if (field71A != null) ParseField71A(field71A);
 
             var field71F = block4.Where(x => x.TagName == "71F").ToList();
-            if (field71F != null)
-            {
-                ParseField71F(field71F);
-            }
+            if (field71F != null) ParseField71F(field71F);
         }
-
 
         /// <summary>
         /// Parses the field20.
         /// </summary>
         /// <param name="field20">The field20.</param>
-        private void ParseField20(ITag field20)
-        {
-            this.SenderReference = field20.Value ?? "";
-        }
+        private void ParseField20(ITag field20) =>
+            SenderReference = field20.Value ?? "";
 
         /// <summary>
         /// Parses the field23 b.
         /// </summary>
         /// <param name="field23B">The field23B.</param>
-        private void ParseField23B(ITag field23B)
-        {
-            this.BankOperationCode = field23B.Value ?? "";
-        }
-
+        private void ParseField23B(ITag field23B) =>
+            BankOperationCode = field23B.Value ?? "";
 
         /// <summary>
         /// Parses the field52.
         /// </summary>
         /// <param name="field52">The field52.</param>
-        private void ParseField52(ITag field52)
-        {
-            this.SendingBank = field52.Value ?? "";
-        }
+        private void ParseField52(ITag field52) =>
+            SendingBank = field52.Value ?? "";
 
         /// <summary>
         /// Parses the field70.
         /// </summary>
         /// <param name="field70">The field70.</param>
-        private void ParseField70(ITag field70)
-        {
-            this.RemittanceInfo = field70.Value ?? "";
-        }
+        private void ParseField70(ITag field70) =>
+            RemittanceInfo = field70.Value ?? "";
 
         /// <summary>
         /// Parses the field71 a.
         /// </summary>
         /// <param name="field71A">The field71A.</param>
-        private void ParseField71A(ITag field71A)
-        {
-            this.DetailsOfCharges = field71A.Value ?? "";
-        }
-
+        private void ParseField71A(ITag field71A) =>
+            DetailsOfCharges = field71A.Value ?? "";
 
         /// <summary>
         /// Parses the field32 a.
@@ -258,19 +209,17 @@ namespace SwiftMessageParser.Entities.MT
         /// <param name="field32A">The field32 a.</param>
         private void ParseField32A(ITag field32A)
         {
-            this.ValueDate = field32A.Qualifier.CovertToDate("yyMMdd");
-            this.Currency = field32A.Code ?? "";
-            this.InterbankSettledAmount = Convert.ToDouble(field32A.Value.Replace(',', '.'));
+            ValueDate = field32A.Qualifier.CovertToDate("yyMMdd");
+            Currency = field32A.Code ?? "";
+            InterbankSettledAmount = Convert.ToDecimal(field32A.Value.Replace(',', '.'));
         }
 
         /// <summary>
         /// Parses the field50.
         /// </summary>
         /// <param name="field50">The field50.</param>
-        private void ParseField50(ITag field50)
-        {
-            this.OrderingCustomer = $"{field50.Value ?? ""} {field50.Qualifier ?? ""} {field50.Description ?? ""}";
-        }
+        private void ParseField50(ITag field50) =>
+            OrderingCustomer = $"{field50.Value ?? ""} {field50.Qualifier ?? ""} {field50.Description ?? ""}";
 
         /// <summary>
         /// Parses the field59.
@@ -278,8 +227,8 @@ namespace SwiftMessageParser.Entities.MT
         /// <param name="field59">The field59.</param>
         private void ParseField59(ITag field59)
         {
-            this.BeneficiaryAccount = field59.Value;
-            this.BeneficiaryName = field59.Qualifier;
+            BeneficiaryAccount = field59.Value.RemoveSpecialCharactersAndLetter();
+            BeneficiaryName = field59.Qualifier;
         }
 
         /// <summary>
@@ -290,17 +239,11 @@ namespace SwiftMessageParser.Entities.MT
         {
             string _senderCharges = string.Empty;
             foreach (var item in field71F)
-            {
-                if (string.IsNullOrEmpty(_senderCharges))
-                {
-                    _senderCharges = $"{item.Code ?? ""}{item.Value ?? ""}";
-                }
-                else
-                {
-                    _senderCharges = $"{_senderCharges}/{item.Code ?? ""}{item.Value ?? ""}";
-                }
-            }
-            this.SenderCharges = _senderCharges;
+                _senderCharges = string.IsNullOrEmpty(_senderCharges) ?
+                    $"{item.Code ?? ""}{item.Value ?? ""}" :
+                    $"{_senderCharges}/{item.Code ?? ""}{item.Value ?? ""}";
+
+            SenderCharges = _senderCharges;
         }
     }
 }

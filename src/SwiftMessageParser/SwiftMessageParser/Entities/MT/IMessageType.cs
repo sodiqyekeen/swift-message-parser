@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SwiftMessageParser.Entities.MT
+﻿namespace SwiftMessageParser.Entities.MT
 {
     public interface IMessageType
     {
